@@ -8,6 +8,15 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(title="Credit Risk Scoring API")
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # for now allow all
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Load model and scaler
 model = pickle.load(open("model/model.pkl", "rb"))
