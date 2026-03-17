@@ -25,7 +25,6 @@ body {
 }
 h2 {
     text-align: center;
-    margin-bottom: 20px;
 }
 input {
     width: 100%;
@@ -33,7 +32,6 @@ input {
     margin: 8px 0;
     border-radius: 6px;
     border: none;
-    outline: none;
 }
 button {
     width: 100%;
@@ -46,19 +44,20 @@ button {
     font-weight: bold;
     cursor: pointer;
 }
-button:hover {
-    background: #2563eb;
+button:disabled {
+    background: gray;
 }
 .result {
-    margin-top: 20px;
+    margin-top: 15px;
     padding: 12px;
     border-radius: 6px;
     text-align: center;
-    font-weight: bold;
+    display: none;
 }
 .low { background: #16a34a; }
 .medium { background: #eab308; color: black; }
 .high { background: #dc2626; }
+.error { background: #ef4444; }
 </style>
 
 </head>
@@ -73,39 +72,74 @@ button:hover {
     <input id="term" placeholder="Loan Term">
     <input id="history" placeholder="Credit History (0 or 1)">
 
-    <button onclick="predict()">Predict Risk</button>
+    <button id="btn" onclick="predict()">Predict Risk</button>
 
-    <div id="result" class="result" style="display:none;"></div>
+    <div id="result" class="result"></div>
 </div>
 
 <script>
 async function predict() {
+    const btn = document.getElementById("btn");
+    const box = document.getElementById("result");
+
+    // validation
+    let income = document.getElementById("income").value;
+    let coincome = document.getElementById("coincome").value;
+    let loan = document.getElementById("loan").value;
+    let term = document.getElementById("term").value;
+    let history = document.getElementById("history").value;
+
+    if (!income || !coincome || !loan || !term || !history) {
+        showError("Fill all fields");
+        return;
+    }
+
     const data = {
-        ApplicantIncome: Number(document.getElementById("income").value),
-        CoapplicantIncome: Number(document.getElementById("coincome").value),
-        LoanAmount: Number(document.getElementById("loan").value),
-        Loan_Amount_Term: Number(document.getElementById("term").value),
-        Credit_History: Number(document.getElementById("history").value)
+        ApplicantIncome: Number(income),
+        CoapplicantIncome: Number(coincome),
+        LoanAmount: Number(loan),
+        Loan_Amount_Term: Number(term),
+        Credit_History: Number(history)
     };
 
-    const res = await fetch("https://credit-risk-scoring-api1.onrender.com/predict", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(data)
-    });
+    try {
+        btn.disabled = true;
+        btn.innerText = "Predicting...";
 
-    const result = await res.json();
+        const res = await fetch("https://credit-risk-scoring-api1.onrender.com/predict", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(data)
+        });
 
+        if (!res.ok) throw new Error("API failed");
+
+        const result = await res.json();
+
+        let risk = result.risk_level.toLowerCase();
+        let prob = (result.default_probability * 100).toFixed(2);
+
+        box.className = "result " + risk;
+        box.style.display = "block";
+        box.innerHTML = `
+            <strong>${result.risk_level} Risk</strong><br>
+            Probability: ${prob}%
+        `;
+
+    } catch (err) {
+        showError("Server error / CORS issue");
+        console.log(err);
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "Predict Risk";
+    }
+}
+
+function showError(msg) {
     const box = document.getElementById("result");
+    box.className = "result error";
     box.style.display = "block";
-
-    let riskClass = result.risk_level.toLowerCase();
-    box.className = "result " + riskClass;
-
-    box.innerHTML = `
-        Risk: ${result.risk_level}<br>
-        Probability: ${(result.default_probability * 100).toFixed(2)}%
-    `;
+    box.innerText = msg;
 }
 </script>
 
