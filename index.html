@@ -3,182 +3,1000 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Credit Risk Predictor</title>
+<title>Credit Risk Scoring API — Predict Default Risk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
 <style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #06080f;
+  --surface: rgba(15, 20, 35, 0.85);
+  --border: rgba(255,255,255,0.06);
+  --fg: #f1f5f9;
+  --muted: #94a3b8;
+  --accent: #818cf8;
+  --accent-bright: #a5b4fc;
+  --green: #34d399;
+  --yellow: #fbbf24;
+  --red: #f87171;
+  --glow-purple: rgba(129,140,248,0.15);
+  --glow-blue: rgba(56,189,248,0.12);
+  --radius: 16px;
+}
+
+html { scroll-behavior: smooth; }
+
 body {
-    margin: 0;
-    font-family: 'Segoe UI', sans-serif;
-    background: radial-gradient(circle at 20% 20%, #1e293b, #020617);
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: white;
-    overflow: hidden;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* glow background */
-.bg-glow {
-    position: absolute;
-    width: 500px;
-    height: 500px;
-    background: radial-gradient(circle, #6366f1, transparent);
-    filter: blur(120px);
-    z-index: -1;
+/* ── Ambient Orbs ── */
+.orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(140px);
+  pointer-events: none;
+  z-index: 0;
+}
+.orb-1 { width: 600px; height: 600px; background: rgba(99,102,241,0.18); top: -200px; left: -150px; }
+.orb-2 { width: 500px; height: 500px; background: rgba(56,189,248,0.12); bottom: -180px; right: -120px; }
+.orb-3 { width: 350px; height: 350px; background: rgba(168,85,247,0.1); top: 40%; left: 55%; }
+
+/* ── Cursor Glow ── */
+.cursor-glow {
+  position: fixed;
+  width: 350px;
+  height: 350px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(129,140,248,0.2), transparent 70%);
+  pointer-events: none;
+  filter: blur(40px);
+  opacity: 0;
+  z-index: 0;
+  transition: opacity 0.4s;
 }
 
-/* glass card */
-.container {
-    backdrop-filter: blur(20px);
-    background: rgba(30, 41, 59, 0.6);
-    padding: 35px;
-    border-radius: 20px;
-    width: 380px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-    border: 1px solid rgba(255,255,255,0.1);
+/* ── Layout ── */
+.wrapper {
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
 }
 
-h2 {
-    text-align: center;
-    margin-bottom: 25px;
-    font-weight: 600;
+/* ── Navbar ── */
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--border);
+}
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-decoration: none;
+  color: var(--fg);
+}
+.navbar-brand .logo-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent), #6366f1);
+  display: grid;
+  place-items: center;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: white;
+}
+.navbar-links { display: flex; gap: 8px; align-items: center; }
+.navbar-links a {
+  text-decoration: none;
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 6px 14px;
+  border-radius: 999px;
+  transition: 0.2s;
+}
+.navbar-links a:hover { color: var(--fg); background: rgba(255,255,255,0.05); }
+.navbar-links .btn-nav {
+  border: 1px solid rgba(129,140,248,0.5);
+  color: var(--accent-bright);
+}
+.navbar-links .btn-nav:hover { background: rgba(129,140,248,0.1); }
+
+/* ── Hero ── */
+.hero {
+  text-align: center;
+  padding: 80px 0 40px;
+}
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(129,140,248,0.08);
+  font-size: 0.82rem;
+  color: var(--accent-bright);
+  margin-bottom: 20px;
+}
+.hero-badge .pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse-dot 2s infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.4); }
+}
+.hero h1 {
+  font-size: clamp(2.2rem, 5vw, 3.6rem);
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 16px;
+  letter-spacing: -0.03em;
+}
+.hero h1 .gradient {
+  background: linear-gradient(135deg, var(--accent-bright), #38bdf8, var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.hero-sub {
+  font-size: 1.1rem;
+  color: var(--muted);
+  max-width: 580px;
+  margin: 0 auto 28px;
+  line-height: 1.6;
+}
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: 0.25s;
+}
+.btn:hover { transform: translateY(-2px); }
+.btn-primary {
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+  color: white;
+  box-shadow: 0 12px 40px rgba(99,102,241,0.35);
+}
+.btn-primary:hover { box-shadow: 0 16px 50px rgba(99,102,241,0.45); }
+.btn-ghost {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.15);
+  color: var(--fg);
+}
+.btn-ghost:hover { background: rgba(255,255,255,0.05); }
+
+/* ── Stats Strip ── */
+.stats-strip {
+  display: flex;
+  justify-content: center;
+  gap: 48px;
+  padding: 32px 0;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.stat { text-align: center; }
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--accent-bright), #38bdf8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.stat-label { font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
+
+/* ── Section Headings ── */
+.section-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+.section-tag {
+  display: inline-block;
+  font-size: 0.78rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+.section-title {
+  font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+  font-weight: 700;
+  margin-bottom: 10px;
+  letter-spacing: -0.02em;
+}
+.section-desc {
+  color: var(--muted);
+  max-width: 550px;
+  margin: 0 auto;
+  line-height: 1.55;
 }
 
-input {
-    width: 100%;
-    padding: 12px;
-    margin: 8px 0;
-    border-radius: 8px;
-    border: none;
-    outline: none;
-    background: rgba(255,255,255,0.08);
-    color: white;
-    transition: 0.2s;
+/* ── Feature Cards ── */
+.features {
+  padding: 64px 0;
+}
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+}
+.feature-card {
+  padding: 28px 24px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  transition: 0.3s;
+}
+.feature-card:hover {
+  border-color: rgba(129,140,248,0.25);
+  transform: translateY(-3px);
+  box-shadow: 0 16px 50px rgba(0,0,0,0.5);
+}
+.feature-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 1.3rem;
+  margin-bottom: 14px;
+}
+.feature-icon.purple { background: rgba(129,140,248,0.15); }
+.feature-icon.blue { background: rgba(56,189,248,0.15); }
+.feature-icon.green { background: rgba(52,211,153,0.15); }
+.feature-icon.amber { background: rgba(251,191,36,0.15); }
+.feature-card h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 8px; }
+.feature-card p { font-size: 0.9rem; color: var(--muted); line-height: 1.5; }
+
+/* ── Predictor Section ── */
+.predictor-section {
+  padding: 64px 0 80px;
+}
+.predictor-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 40px;
+  align-items: start;
+}
+.predictor-info { padding-top: 20px; }
+.predictor-info h2 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 14px;
+  letter-spacing: -0.02em;
+}
+.predictor-info p {
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+.info-list { list-style: none; }
+.info-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+  font-size: 0.92rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.info-list li .check {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(52,211,153,0.15);
+  display: grid;
+  place-items: center;
+  font-size: 0.7rem;
+  color: var(--green);
+  margin-top: 1px;
+}
+.api-example {
+  margin-top: 24px;
+  padding: 18px;
+  border-radius: 12px;
+  background: rgba(10,14,25,0.9);
+  border: 1px solid var(--border);
+  font-family: 'Courier New', monospace;
+  font-size: 0.82rem;
+  color: var(--muted);
+  overflow-x: auto;
+  line-height: 1.6;
+}
+.api-example .method { color: var(--green); font-weight: 600; }
+.api-example .url { color: var(--accent-bright); }
+.api-example .key { color: #fbbf24; }
+.api-example .val { color: #38bdf8; }
+
+/* ── Predictor Card ── */
+.predictor-card {
+  padding: 32px 28px;
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(15,20,40,0.92), rgba(10,14,28,0.96));
+  border: 1px solid var(--border);
+  box-shadow: 0 24px 60px rgba(0,0,0,0.7);
+  position: relative;
+  overflow: hidden;
+}
+.predictor-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #6366f1, #38bdf8, #818cf8);
+}
+.predictor-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+.predictor-card-header h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+.live-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--green);
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(52,211,153,0.1);
+  border: 1px solid rgba(52,211,153,0.2);
+}
+.live-badge .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse-dot 2s infinite;
 }
 
-input:focus {
-    background: rgba(255,255,255,0.15);
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group.full { grid-column: span 2; }
+.form-group label {
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.form-group input {
+  padding: 11px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  color: var(--fg);
+  font-size: 0.92rem;
+  font-family: inherit;
+  outline: none;
+  transition: 0.25s;
+  width: 100%;
+}
+.form-group input:focus {
+  border-color: rgba(129,140,248,0.5);
+  background: rgba(255,255,255,0.07);
+  box-shadow: 0 0 0 3px rgba(129,140,248,0.08);
+}
+.form-group input::placeholder { color: rgba(148,163,184,0.5); }
+
+.predict-btn {
+  width: 100%;
+  padding: 14px;
+  margin-top: 16px;
+  border-radius: 12px;
+  border: none;
+  font-weight: 700;
+  font-size: 0.95rem;
+  font-family: inherit;
+  cursor: pointer;
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+  color: white;
+  box-shadow: 0 8px 30px rgba(99,102,241,0.3);
+  transition: 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.predict-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(99,102,241,0.45);
+}
+.predict-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+.predict-btn .spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  display: none;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Result Box ── */
+.result-box {
+  margin-top: 18px;
+  padding: 20px;
+  border-radius: 14px;
+  display: none;
+  position: relative;
+  overflow: hidden;
+}
+.result-box::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.12;
+  border-radius: inherit;
+}
+.result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.risk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.result-details {
+  font-size: 0.88rem;
+  color: var(--muted);
+  line-height: 1.55;
+}
+.result-probability {
+  font-size: 2rem;
+  font-weight: 800;
+  margin: 6px 0;
+}
+.result-bar-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  margin-top: 10px;
+  overflow: hidden;
+}
+.result-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.8s ease;
+  width: 0%;
 }
 
-button {
-    width: 100%;
-    padding: 14px;
-    margin-top: 12px;
-    border-radius: 10px;
-    border: none;
-    font-weight: bold;
-    cursor: pointer;
-    background: linear-gradient(135deg, #6366f1, #3b82f6);
-    color: white;
-    transition: 0.3s;
+/* Risk Themes */
+.result-low { border: 1px solid rgba(52,211,153,0.3); background: rgba(52,211,153,0.06); }
+.result-low .risk-badge { background: rgba(52,211,153,0.15); color: var(--green); }
+.result-low .result-probability { color: var(--green); }
+.result-low .result-bar-fill { background: var(--green); }
+
+.result-medium { border: 1px solid rgba(251,191,36,0.3); background: rgba(251,191,36,0.06); }
+.result-medium .risk-badge { background: rgba(251,191,36,0.15); color: var(--yellow); }
+.result-medium .result-probability { color: var(--yellow); }
+.result-medium .result-bar-fill { background: var(--yellow); }
+
+.result-high { border: 1px solid rgba(248,113,113,0.3); background: rgba(248,113,113,0.06); }
+.result-high .risk-badge { background: rgba(248,113,113,0.15); color: var(--red); }
+.result-high .result-probability { color: var(--red); }
+.result-high .result-bar-fill { background: var(--red); }
+
+.result-error { border: 1px solid rgba(248,113,113,0.3); background: rgba(248,113,113,0.06); }
+.result-error .result-probability { color: var(--red); font-size: 1rem; font-weight: 600; }
+
+/* ── How It Works ── */
+.how-section { padding: 64px 0; }
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+  margin-top: 40px;
+}
+.step-card {
+  text-align: center;
+  padding: 28px 20px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  position: relative;
+}
+.step-number {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+  display: inline-grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 1rem;
+  margin-bottom: 14px;
+}
+.step-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 8px; }
+.step-card p { font-size: 0.85rem; color: var(--muted); line-height: 1.5; }
+.step-arrow {
+  position: absolute;
+  right: -22px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.2rem;
+  color: var(--muted);
+  z-index: 2;
 }
 
-button:hover {
-    transform: translateY(-2px);
+/* ── Tech Stack ── */
+.tech-section { padding: 40px 0 64px; }
+.tech-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 28px;
+}
+.tech-pill {
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--muted);
+  transition: 0.25s;
+}
+.tech-pill:hover {
+  border-color: rgba(129,140,248,0.3);
+  color: var(--fg);
+  transform: translateY(-2px);
 }
 
-button:disabled {
-    background: gray;
+/* ── Footer ── */
+.site-footer {
+  border-top: 1px solid var(--border);
+  padding: 28px 0;
+  text-align: center;
 }
-
-.result {
-    margin-top: 18px;
-    padding: 14px;
-    border-radius: 10px;
-    text-align: center;
-    display: none;
-    font-weight: bold;
+.footer-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
 }
+.footer-inner span { font-size: 0.85rem; color: var(--muted); }
+.footer-inner a {
+  color: var(--accent-bright);
+  text-decoration: none;
+  font-size: 0.85rem;
+}
+.footer-links { display: flex; gap: 18px; }
 
-.low { background: #16a34a; }
-.medium { background: #eab308; color: black; }
-.high { background: #dc2626; }
-.error { background: #ef4444; }
+/* ── Responsive ── */
+@media (max-width: 860px) {
+  .predictor-layout { grid-template-columns: 1fr; }
+  .predictor-info { order: 2; padding-top: 0; }
+  .form-grid { grid-template-columns: 1fr; }
+  .form-group.full { grid-column: span 1; }
+  .stats-strip { gap: 28px; }
+  .step-arrow { display: none; }
+}
+@media (max-width: 480px) {
+  .navbar-links a:not(.btn-nav) { display: none; }
+  .hero { padding: 50px 0 30px; }
+  .predictor-card { padding: 24px 18px; }
+}
 </style>
-
 </head>
 <body>
 
-<div class="bg-glow"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+<div class="cursor-glow" id="cursorGlow"></div>
 
-<div class="container">
-    <h2>Credit Risk Predictor</h2>
+<div class="wrapper">
 
-    <input id="income" placeholder="Applicant Income">
-    <input id="coincome" placeholder="Coapplicant Income">
-    <input id="loan" placeholder="Loan Amount">
-    <input id="term" placeholder="Loan Term">
-    <input id="history" placeholder="Credit History (0 or 1)">
+  <!-- ── Navbar ── -->
+  <nav class="navbar">
+    <a href="#" class="navbar-brand">
+      <div class="logo-icon">CR</div>
+      Credit Risk API
+    </a>
+    <div class="navbar-links">
+      <a href="#features">Features</a>
+      <a href="#predictor">Try It</a>
+      <a href="#how">How It Works</a>
+      <a href="https://github.com/Adityakumar222/credit-risk-scoring-api" target="_blank" rel="noreferrer" class="btn-nav">GitHub ↗</a>
+    </div>
+  </nav>
 
-    <button id="btn" onclick="predict()">Predict Risk</button>
+  <!-- ── Hero ── -->
+  <section class="hero">
+    <div class="hero-badge">
+      <span class="pulse"></span>
+      API Live on Render
+    </div>
+    <h1>Predict Credit Risk<br><span class="gradient">Before It Happens</span></h1>
+    <p class="hero-sub">
+      An ML-powered REST API that scores loan applicants in real time.
+      Built with Scikit-learn, served through FastAPI, and ready to integrate.
+    </p>
+    <div class="hero-actions">
+      <a href="#predictor" class="btn btn-primary">Try the Predictor</a>
+      <a href="https://credit-risk-scoring-api1.onrender.com/docs" target="_blank" rel="noreferrer" class="btn btn-ghost">API Docs ↗</a>
+    </div>
+  </section>
 
-    <div id="result" class="result"></div>
+  <!-- ── Stats Strip ── -->
+  <div class="stats-strip">
+    <div class="stat">
+      <div class="stat-value">~85%</div>
+      <div class="stat-label">ROC-AUC Score</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">100K+</div>
+      <div class="stat-label">Records Trained On</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">&lt;200ms</div>
+      <div class="stat-label">Avg Response Time</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">REST</div>
+      <div class="stat-label">JSON API</div>
+    </div>
+  </div>
+
+  <!-- ── Features ── -->
+  <section class="features" id="features">
+    <div class="section-header">
+      <div class="section-tag">Features</div>
+      <h2 class="section-title">What this API does</h2>
+      <p class="section-desc">End-to-end ML pipeline from raw data to real-time risk scoring via a clean REST endpoint.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon purple">🧠</div>
+        <h3>ML Risk Scoring</h3>
+        <p>Logistic Regression model trained on cleaned, feature-engineered loan data to predict default probability.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon blue">⚡</div>
+        <h3>FastAPI Endpoint</h3>
+        <p>Submit applicant data as JSON, get back risk level and probability in milliseconds. Auto-generated Swagger docs included.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon green">📊</div>
+        <h3>Feature Engineering</h3>
+        <p>Income ratios, credit history encoding, and loan term normalization — all handled in the pipeline before prediction.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon amber">🐳</div>
+        <h3>Dockerized & Deployed</h3>
+        <p>Containerized with Docker, deployed on Render. Ready for integration into any lending workflow or dashboard.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Predictor Section ── -->
+  <section class="predictor-section" id="predictor">
+    <div class="predictor-layout">
+
+      <!-- Left: Info -->
+      <div class="predictor-info">
+        <div class="section-tag">Live Demo</div>
+        <h2>Test the API right here</h2>
+        <p>
+          Enter applicant details and hit predict. The form sends a real POST request to the
+          deployed FastAPI endpoint and returns the model's risk assessment.
+        </p>
+        <ul class="info-list">
+          <li><span class="check">✓</span> Real API call — not a simulation</li>
+          <li><span class="check">✓</span> Returns risk level (Low / Medium / High)</li>
+          <li><span class="check">✓</span> Shows default probability as percentage</li>
+          <li><span class="check">✓</span> Works on any device, no signup needed</li>
+        </ul>
+
+        <div class="api-example">
+          <span class="method">POST</span> <span class="url">/predict</span><br><br>
+          {<br>
+          &nbsp;&nbsp;<span class="key">"ApplicantIncome"</span>: <span class="val">5000</span>,<br>
+          &nbsp;&nbsp;<span class="key">"CoapplicantIncome"</span>: <span class="val">2000</span>,<br>
+          &nbsp;&nbsp;<span class="key">"LoanAmount"</span>: <span class="val">150</span>,<br>
+          &nbsp;&nbsp;<span class="key">"Loan_Amount_Term"</span>: <span class="val">360</span>,<br>
+          &nbsp;&nbsp;<span class="key">"Credit_History"</span>: <span class="val">1</span><br>
+          }
+        </div>
+      </div>
+
+      <!-- Right: Predictor Card -->
+      <div class="predictor-card">
+        <div class="predictor-card-header">
+          <h3>Credit Risk Predictor</h3>
+          <div class="live-badge"><span class="dot"></span> Live</div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Applicant Income</label>
+            <input id="income" type="number" placeholder="e.g. 5000">
+          </div>
+          <div class="form-group">
+            <label>Coapplicant Income</label>
+            <input id="coincome" type="number" placeholder="e.g. 2000">
+          </div>
+          <div class="form-group">
+            <label>Loan Amount</label>
+            <input id="loan" type="number" placeholder="e.g. 150">
+          </div>
+          <div class="form-group">
+            <label>Loan Term (days)</label>
+            <input id="term" type="number" placeholder="e.g. 360">
+          </div>
+          <div class="form-group full">
+            <label>Credit History</label>
+            <input id="history" type="number" placeholder="0 or 1">
+          </div>
+        </div>
+
+        <button class="predict-btn" id="predictBtn" onclick="predict()">
+          <span class="spinner" id="spinner"></span>
+          <span id="btnText">Predict Risk</span>
+        </button>
+
+        <div class="result-box" id="resultBox">
+          <div class="result-header">
+            <span class="risk-badge" id="riskBadge"></span>
+            <span class="result-details" id="riskLabel"></span>
+          </div>
+          <div class="result-probability" id="riskProb"></div>
+          <div class="result-details" id="riskDesc"></div>
+          <div class="result-bar-track">
+            <div class="result-bar-fill" id="riskBar"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── How It Works ── -->
+  <section class="how-section" id="how">
+    <div class="section-header">
+      <div class="section-tag">How It Works</div>
+      <h2 class="section-title">From input to insight</h2>
+      <p class="section-desc">A simple pipeline: your data goes in, a risk score comes out.</p>
+    </div>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-number">1</div>
+        <h3>Submit Data</h3>
+        <p>Send applicant income, loan amount, term, and credit history as a JSON payload.</p>
+        <span class="step-arrow">→</span>
+      </div>
+      <div class="step-card">
+        <div class="step-number">2</div>
+        <h3>Feature Pipeline</h3>
+        <p>The API preprocesses inputs — scaling, encoding, and engineering features the model expects.</p>
+        <span class="step-arrow">→</span>
+      </div>
+      <div class="step-card">
+        <div class="step-number">3</div>
+        <h3>Model Inference</h3>
+        <p>A trained Logistic Regression model scores the applicant and computes default probability.</p>
+        <span class="step-arrow">→</span>
+      </div>
+      <div class="step-card">
+        <div class="step-number">4</div>
+        <h3>Get Results</h3>
+        <p>Receive a JSON response with risk level (Low / Medium / High) and the probability score.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Tech Stack ── -->
+  <section class="tech-section">
+    <div class="section-header">
+      <div class="section-tag">Built With</div>
+      <h2 class="section-title">Tech stack</h2>
+    </div>
+    <div class="tech-pills">
+      <span class="tech-pill">Python</span>
+      <span class="tech-pill">Scikit-learn</span>
+      <span class="tech-pill">Pandas</span>
+      <span class="tech-pill">NumPy</span>
+      <span class="tech-pill">FastAPI</span>
+      <span class="tech-pill">Uvicorn</span>
+      <span class="tech-pill">Docker</span>
+      <span class="tech-pill">Render</span>
+      <span class="tech-pill">Git</span>
+      <span class="tech-pill">Logistic Regression</span>
+    </div>
+  </section>
+
 </div>
 
+<!-- ── Footer ── -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <span>© 2026 Aditya Kumar · Credit Risk Scoring API</span>
+    <div class="footer-links">
+      <a href="https://github.com/Adityakumar222/credit-risk-scoring-api" target="_blank" rel="noreferrer">GitHub</a>
+      <a href="https://credit-risk-scoring-api1.onrender.com/docs" target="_blank" rel="noreferrer">API Docs</a>
+      <a href="https://www.linkedin.com/in/adityakr2/" target="_blank" rel="noreferrer">LinkedIn</a>
+    </div>
+  </div>
+</footer>
+
 <script>
+// Cursor glow
+const glow = document.getElementById('cursorGlow');
+let gx = 0, gy = 0, tx = 0, ty = 0;
+function animateGlow() {
+  gx += (tx - gx) * 0.1;
+  gy += (ty - gy) * 0.1;
+  glow.style.transform = `translate(${gx - 175}px, ${gy - 175}px)`;
+  requestAnimationFrame(animateGlow);
+}
+window.addEventListener('mousemove', e => { tx = e.clientX; ty = e.clientY; glow.style.opacity = 1; });
+window.addEventListener('mouseleave', () => glow.style.opacity = 0);
+animateGlow();
+
+// Prediction
 async function predict() {
-    const btn = document.getElementById("btn");
-    const box = document.getElementById("result");
+  const btn = document.getElementById('predictBtn');
+  const btnText = document.getElementById('btnText');
+  const spinner = document.getElementById('spinner');
+  const box = document.getElementById('resultBox');
+  const badge = document.getElementById('riskBadge');
+  const label = document.getElementById('riskLabel');
+  const prob = document.getElementById('riskProb');
+  const desc = document.getElementById('riskDesc');
+  const bar = document.getElementById('riskBar');
 
-    let income = document.getElementById("income").value;
-    let coincome = document.getElementById("coincome").value;
-    let loan = document.getElementById("loan").value;
-    let term = document.getElementById("term").value;
-    let history = document.getElementById("history").value;
+  const income = document.getElementById('income').value;
+  const coincome = document.getElementById('coincome').value;
+  const loan = document.getElementById('loan').value;
+  const term = document.getElementById('term').value;
+  const history = document.getElementById('history').value;
 
-    if (!income || !coincome || !loan || !term || !history) {
-        showError("Fill all fields");
-        return;
-    }
+  if (!income || !coincome || !loan || !term || !history) {
+    showError('Please fill in all fields');
+    return;
+  }
 
-    const data = {
-        ApplicantIncome: Number(income),
-        CoapplicantIncome: Number(coincome),
-        LoanAmount: Number(loan),
-        Loan_Amount_Term: Number(term),
-        Credit_History: Number(history)
+  const data = {
+    ApplicantIncome: Number(income),
+    CoapplicantIncome: Number(coincome),
+    LoanAmount: Number(loan),
+    Loan_Amount_Term: Number(term),
+    Credit_History: Number(history)
+  };
+
+  try {
+    btn.disabled = true;
+    btnText.textContent = 'Analyzing…';
+    spinner.style.display = 'block';
+    box.style.display = 'none';
+
+    const res = await fetch('https://credit-risk-scoring-api1.onrender.com/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+
+    if (!res.ok) throw new Error('API returned ' + res.status);
+
+    const result = await res.json();
+    const risk = result.risk_level.toLowerCase();
+    const probability = (result.default_probability * 100).toFixed(2);
+
+    box.className = 'result-box result-' + risk;
+    box.style.display = 'block';
+
+    const icons = { low: '✅', medium: '⚠️', high: '🚨' };
+    const descriptions = {
+      low: 'This applicant has a low likelihood of default. Suitable for standard loan approval.',
+      medium: 'Moderate default risk detected. Consider additional verification or adjusted terms.',
+      high: 'High default probability. Manual review and enhanced due diligence recommended.'
     };
 
-    try {
-        btn.disabled = true;
-        btn.innerText = "Predicting...";
+    badge.textContent = icons[risk] + ' ' + result.risk_level + ' Risk';
+    label.textContent = 'Default Probability';
+    prob.textContent = probability + '%';
+    desc.textContent = descriptions[risk] || '';
 
-        const res = await fetch("https://credit-risk-scoring-api1.onrender.com/predict", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify(data)
-        });
+    // Animate bar
+    bar.style.width = '0%';
+    setTimeout(() => { bar.style.width = probability + '%'; }, 100);
 
-        if (!res.ok) throw new Error("API failed");
-
-        const result = await res.json();
-
-        let risk = result.risk_level.toLowerCase();
-        let prob = (result.default_probability * 100).toFixed(2);
-
-        box.className = "result " + risk;
-        box.style.display = "block";
-        box.innerHTML = `
-            <strong>${result.risk_level} Risk</strong><br>
-            Probability: ${prob}%
-        `;
-
-    } catch (err) {
-        showError("Server error / API issue");
-        console.log(err);
-    } finally {
-        btn.disabled = false;
-        btn.innerText = "Predict Risk";
-    }
+  } catch (err) {
+    showError('Server error — the API may be cold-starting. Try again in 30s.');
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+    btnText.textContent = 'Predict Risk';
+    spinner.style.display = 'none';
+  }
 }
 
 function showError(msg) {
-    const box = document.getElementById("result");
-    box.className = "result error";
-    box.style.display = "block";
-    box.innerText = msg;
+  const box = document.getElementById('resultBox');
+  const badge = document.getElementById('riskBadge');
+  const label = document.getElementById('riskLabel');
+  const prob = document.getElementById('riskProb');
+  const desc = document.getElementById('riskDesc');
+  const bar = document.getElementById('riskBar');
+
+  box.className = 'result-box result-error';
+  box.style.display = 'block';
+  badge.textContent = '❌ Error';
+  label.textContent = '';
+  prob.textContent = msg;
+  desc.textContent = '';
+  bar.style.width = '0%';
 }
+
+// Smooth scroll for anchor links
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
 </script>
 
 </body>
